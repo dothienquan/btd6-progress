@@ -12,9 +12,12 @@ import {
 } from "@/data/maps";
 import { MEDALS, type MedalId } from "@/data/medals";
 import {
+  loadClientBaseline,
   loadClientProgress,
   patchClientMap,
+  saveClientBaseline,
   saveClientProgress,
+  type PlayStyle,
 } from "@/lib/clientProgress";
 import {
   countMedals,
@@ -54,8 +57,8 @@ const LS = {
   oak: "btd6_oak",
   profile: "btd6_oak_profile",
   lastSync: "btd6_last_sync",
-  baseline: "btd6_oak_baseline",
   theme: "btd6_theme",
+  playStyle: "btd6_play_style",
 } as const;
 
 const AUTO_SYNC_MS = 15 * 60 * 1000;
@@ -65,8 +68,13 @@ function applyTheme(theme: ThemeMode) {
 }
 
 export function ProgressApp() {
-  const [progress, setProgress] = useState<ProgressStore>(emptyProgress);
-  const [baseline, setBaseline] = useState<ProgressStore | null>(null);
+  const [soloProgress, setSoloProgress] =
+    useState<ProgressStore>(emptyProgress);
+  const [coopProgress, setCoopProgress] =
+    useState<ProgressStore>(emptyProgress);
+  const [soloBaseline, setSoloBaseline] = useState<ProgressStore | null>(null);
+  const [coopBaseline, setCoopBaseline] = useState<ProgressStore | null>(null);
+  const [playStyle, setPlayStyle] = useState<PlayStyle>("solo");
   const [loading, setLoading] = useState(true);
   const [difficulty, setDifficulty] = useState<"all" | MapDifficulty>("all");
   const [completionFilter, setCompletionFilter] =
@@ -81,6 +89,9 @@ export function ProgressApp() {
   const [toast, setToast] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const autoSynced = useRef(false);
+
+  const progress = playStyle === "solo" ? soloProgress : coopProgress;
+  const baseline = playStyle === "solo" ? soloBaseline : coopBaseline;
 
   const syncOak = useCallback(
     async (token?: string, opts?: { silent?: boolean }) => {
@@ -100,9 +111,16 @@ export function ProgressApp() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Sync failed");
 
-        setProgress(data.progress);
-        setBaseline(data.progress);
-        saveClientProgress(data.progress);
+        const nextSolo = data.progress ?? emptyProgress();
+        const nextCoop = data.coopProgress ?? emptyProgress();
+        setSoloProgress(nextSolo);
+        setCoopProgress(nextCoop);
+        setSoloBaseline(nextSolo);
+        setCoopBaseline(nextCoop);
+        saveClientProgress(nextSolo, "solo");
+        saveClientProgress(nextCoop, "coop");
+        saveClientBaseline(nextSolo, "solo");
+        saveClientBaseline(nextCoop, "coop");
         const syncedAt = new Date().toISOString();
         setLastSync(syncedAt);
 
@@ -119,7 +137,6 @@ export function ProgressApp() {
         localStorage.setItem(LS.profile, JSON.stringify(nextProfile));
         localStorage.setItem(LS.oak, oakToken);
         localStorage.setItem(LS.lastSync, syncedAt);
-        localStorage.setItem(LS.baseline, JSON.stringify(data.progress));
         setOak(oakToken);
         if (nextProfile.displayName) setShowOakSettings(false);
 
@@ -134,8 +151,10 @@ export function ProgressApp() {
             unmatched.length > 0
               ? ` Unmatched NK maps: ${unmatched.slice(0, 5).join(", ")}${unmatched.length > 5 ? "…" : ""}`
               : "";
+          const soloMedals = data.summary?.medals ?? 0;
+          const coopMedals = data.coopSummary?.medals ?? 0;
           setToast(
-            `Synced${name} — ${data.summary.medals} medals from Ninja Kiwi.${warn}`,
+            `Synced${name} — Solo ${soloMedals} · Co-op ${coopMedals} medals.${warn}`,
           );
         }
         return true;
@@ -184,18 +203,17 @@ export function ProgressApp() {
     const storedSync = localStorage.getItem(LS.lastSync);
     if (storedSync) setLastSync(storedSync);
 
-    const storedBaseline = localStorage.getItem(LS.baseline);
-    if (storedBaseline) {
-      try {
-        setBaseline(JSON.parse(storedBaseline) as ProgressStore);
-      } catch {
-        /* ignore */
-      }
+    const storedStyle = localStorage.getItem(LS.playStyle);
+    if (storedStyle === "solo" || storedStyle === "coop") {
+      setPlayStyle(storedStyle);
     }
 
+    setSoloBaseline(loadClientBaseline("solo"));
+    setCoopBaseline(loadClientBaseline("coop"));
+
     let cancelled = false;
-    const local = loadClientProgress();
-    setProgress(local);
+    setSoloProgress(loadClientProgress("solo"));
+    setCoopProgress(loadClientProgress("coop"));
     setLoading(false);
     if (storedOak && !autoSynced.current) {
       autoSynced.current = true;
@@ -269,13 +287,18 @@ export function ProgressApp() {
     });
   }, []);
 
-  const toggleMedal = useCallback((mapId: string, medalId: MedalId) => {
-    setProgress((prev) => {
-      const current = prev.maps[mapId] ?? {};
-      const nextVal = !current[medalId];
-      return patchClientMap(prev, mapId, { [medalId]: nextVal });
-    });
-  }, []);
+  const toggleMedal = useCallback(
+    (mapId: string, medalId: MedalId) => {
+      const apply = (prev: ProgressStore) => {
+        const current = prev.maps[mapId] ?? {};
+        const nextVal = !current[medalId];
+        return patchClientMap(prev, mapId, { [medalId]: nextVal }, playStyle);
+      };
+      if (playStyle === "solo") setSoloProgress(apply);
+      else setCoopProgress(apply);
+    },
+    [playStyle],
+  );
 
   const markTier = useCallback(
     (mapId: string, upTo: "easy" | "medium" | "hard" | "all") => {
@@ -294,10 +317,19 @@ export function ProgressApp() {
         MedalId,
         boolean
       >;
-      setProgress((prev) => patchClientMap(prev, mapId, patch));
+      const apply = (prev: ProgressStore) =>
+        patchClientMap(prev, mapId, patch, playStyle);
+      if (playStyle === "solo") setSoloProgress(apply);
+      else setCoopProgress(apply);
     },
-    [],
+    [playStyle],
   );
+
+  const selectPlayStyle = useCallback((next: PlayStyle) => {
+    setPlayStyle(next);
+    localStorage.setItem(LS.playStyle, next);
+    setSelected(null);
+  }, []);
 
   const selectedMissing = selected
     ? missingMedals(progress.maps[selected.id])
@@ -388,13 +420,15 @@ export function ProgressApp() {
           </div>
         </div>
         <div className="dash-stats">
-          <div className="dash-stat">
-            <span>Completion</span>
-            <strong>{loading ? "…" : `${summary.percent}%`}</strong>
-            <em>
-              {summary.medals}/{summary.totalPossible}
-            </em>
-          </div>
+            <div className="dash-stat">
+              <span>
+                {playStyle === "solo" ? "Solo" : "Co-op"} Completion
+              </span>
+              <strong>{loading ? "…" : `${summary.percent}%`}</strong>
+              <em>
+                {summary.medals}/{summary.totalPossible}
+              </em>
+            </div>
         </div>
       </section>
       )}
@@ -433,6 +467,26 @@ export function ProgressApp() {
 
       {hasUser && (
       <section className="toolbar">
+        <div className="chips play-style-toggle" role="tablist" aria-label="Play style">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={playStyle === "solo"}
+            className={playStyle === "solo" ? "active" : ""}
+            onClick={() => selectPlayStyle("solo")}
+          >
+            Solo
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={playStyle === "coop"}
+            className={playStyle === "coop" ? "active" : ""}
+            onClick={() => selectPlayStyle("coop")}
+          >
+            Co-op
+          </button>
+        </div>
         <input
           className="search"
           placeholder="Search maps…"
@@ -544,6 +598,7 @@ export function ProgressApp() {
             <header>
               <div>
                 <p className="drawer-kicker">
+                  {playStyle === "solo" ? "Solo" : "Co-op"} ·{" "}
                   {DIFFICULTY_LABELS[selected.difficulty]}
                   {selected.special ? " · Special" : ""} · v
                   {selected.introduced}

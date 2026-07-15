@@ -203,7 +203,34 @@ function medalFromMode(difficulty: string, mode: string): MedalId | null {
   return MODE_TO_MEDAL[mode] ?? null;
 }
 
-export function mapProgressFromNkSave(save: NkSave): ProgressStore {
+export type NkPlayMode = "single" | "coop";
+
+function medalsFromModes(
+  entry: NkMapEntry,
+  playMode: NkPlayMode,
+): MapProgress {
+  const medals: MapProgress = {};
+  if (!entry.difficulty) return medals;
+
+  for (const [diff, modes] of Object.entries(entry.difficulty)) {
+    const bucket = (playMode === "coop" ? modes.coop : modes.single) ?? {};
+    for (const [mode, data] of Object.entries(bucket)) {
+      const medalId = medalFromMode(diff, mode);
+      if (!medalId || !data) continue;
+      if (data.completed) medals[medalId] = true;
+      if (mode === "Clicks" && data.completedWithoutLoadingSave) {
+        medals.chimps = true;
+        medals.chimpsBlack = true;
+      }
+    }
+  }
+  return medals;
+}
+
+export function mapProgressFromNkSave(
+  save: NkSave,
+  playMode: NkPlayMode = "single",
+): ProgressStore {
   const maps: Record<string, MapProgress> = {};
   const raw = save.mapProgress ?? {};
   const keyIndex = buildNkKeyIndex(raw);
@@ -211,21 +238,7 @@ export function mapProgressFromNkSave(save: NkSave): ProgressStore {
   for (const map of MAPS) {
     const entry = findMapEntry(raw, map.id, keyIndex);
     if (!entry?.difficulty) continue;
-
-    const medals: MapProgress = {};
-    for (const [diff, modes] of Object.entries(entry.difficulty)) {
-      const single = modes.single ?? {};
-      for (const [mode, data] of Object.entries(single)) {
-        const medalId = medalFromMode(diff, mode);
-        if (!medalId || !data) continue;
-        if (data.completed) medals[medalId] = true;
-        if (mode === "Clicks" && data.completedWithoutLoadingSave) {
-          medals.chimps = true;
-          medals.chimpsBlack = true;
-        }
-      }
-    }
-
+    const medals = medalsFromModes(entry, playMode);
     if (Object.keys(medals).length > 0) maps[map.id] = medals;
   }
 
@@ -273,6 +286,7 @@ export async function fetchNkProfile(oak: string): Promise<NkProfile> {
 
 export async function syncFromOak(oak: string): Promise<{
   progress: ProgressStore;
+  coopProgress: ProgressStore;
   profile: NkProfile;
   save: Pick<
     NkSave,
@@ -290,7 +304,8 @@ export async function syncFromOak(oak: string): Promise<{
     fetchNkProfile(token).catch(() => ({} as NkProfile)),
   ]);
 
-  const progress = mapProgressFromNkSave(save);
+  const progress = mapProgressFromNkSave(save, "single");
+  const coopProgress = mapProgressFromNkSave(save, "coop");
   const raw = save.mapProgress ?? {};
   const keyIndex = buildNkKeyIndex(raw);
 
@@ -314,6 +329,7 @@ export async function syncFromOak(oak: string): Promise<{
 
   return {
     progress,
+    coopProgress,
     profile,
     save: {
       latestGameVersion: save.latestGameVersion,

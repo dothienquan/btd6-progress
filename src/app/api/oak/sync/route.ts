@@ -31,10 +31,9 @@ export async function POST(request: Request) {
 
   try {
     const result = await syncFromOak(oak);
-    const progress = {
-      ...result.progress,
-      updatedAt: new Date().toISOString(),
-    };
+    const now = new Date().toISOString();
+    const progress = { ...result.progress, updatedAt: now };
+    const coopProgress = { ...result.coopProgress, updatedAt: now };
     return Response.json({
       ok: true,
       source: "ninjakiwi-oak",
@@ -51,7 +50,9 @@ export async function POST(request: Request) {
         bannerURL: result.profile.bannerURL ?? null,
       },
       progress,
+      coopProgress,
       summary: summarizeProgress(progress),
+      coopSummary: summarizeProgress(coopProgress),
       unmatchedNkMaps: result.unmatchedNkMaps,
     });
   } catch (err) {
