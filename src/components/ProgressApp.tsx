@@ -26,7 +26,6 @@ import {
   getBorder,
   isMapEdited,
   mapsForFilter,
-  missingMedals,
   summarizeProgress,
   wikiUrlForMap,
   type CompletionFilter,
@@ -331,12 +330,6 @@ export function ProgressApp() {
     setSelected(null);
   }, []);
 
-  const selectedMissing = selected
-    ? missingMedals(progress.maps[selected.id])
-    : [];
-  const selectedBorder = selected
-    ? getBorder(progress.maps[selected.id])
-    : "none";
   const selectedEdited = selected
     ? isMapEdited(selected.id, progress, baseline)
     : false;
@@ -614,26 +607,6 @@ export function ProgressApp() {
                 Close
               </button>
             </header>
-
-            <div className={`border-preview border-${selectedBorder}`}>
-              <span className="border-preview-ring" aria-hidden />
-              <div>
-                <strong>{selectedBorder} border</strong>
-                <p>
-                  {countMedals(progress.maps[selected.id])}/{MEDALS.length}{" "}
-                  medals
-                </p>
-              </div>
-            </div>
-
-            {selectedMissing.length > 0 ? (
-              <p className="missing-line">
-                Missing:{" "}
-                {selectedMissing.map((m) => m.short).join(", ")}
-              </p>
-            ) : (
-              <p className="missing-line done">All medals earned</p>
-            )}
 
             <div className="drawer-links">
               <a
