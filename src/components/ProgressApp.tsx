@@ -50,21 +50,14 @@ type OakProfile = {
   bannerURL: string | null;
 };
 
-type ThemeMode = "day" | "night";
-
 const LS = {
   oak: "btd6_oak",
   profile: "btd6_oak_profile",
   lastSync: "btd6_last_sync",
-  theme: "btd6_theme",
   playStyle: "btd6_play_style",
 } as const;
 
 const AUTO_SYNC_MS = 15 * 60 * 1000;
-
-function applyTheme(theme: ThemeMode) {
-  document.documentElement.dataset.theme = theme;
-}
 
 export function ProgressApp() {
   const [soloProgress, setSoloProgress] =
@@ -84,7 +77,6 @@ export function ProgressApp() {
   const [showOakSettings, setShowOakSettings] = useState(false);
   const [profile, setProfile] = useState<OakProfile | null>(null);
   const [lastSync, setLastSync] = useState<string | null>(null);
-  const [theme, setTheme] = useState<ThemeMode>("day");
   const [toast, setToast] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const autoSynced = useRef(false);
@@ -172,10 +164,7 @@ export function ProgressApp() {
   useEffect(() => {
     const storedOak = localStorage.getItem(LS.oak) ?? "";
     setOak(storedOak);
-
-    const storedTheme = (localStorage.getItem(LS.theme) as ThemeMode) || "day";
-    setTheme(storedTheme);
-    applyTheme(storedTheme);
+    document.documentElement.dataset.theme = "day";
 
     let hasStoredUser = false;
     const storedProfile = localStorage.getItem(LS.profile);
@@ -277,15 +266,6 @@ export function ProgressApp() {
     localStorage.setItem(LS.oak, value);
   }, []);
 
-  const toggleTheme = useCallback(() => {
-    setTheme((prev) => {
-      const next: ThemeMode = prev === "day" ? "night" : "day";
-      localStorage.setItem(LS.theme, next);
-      applyTheme(next);
-      return next;
-    });
-  }, []);
-
   const toggleMedal = useCallback(
     (mapId: string, medalId: MedalId) => {
       const apply = (prev: ProgressStore) => {
@@ -343,15 +323,6 @@ export function ProgressApp() {
           <span className="brand-meta">v{MAP_VERSION} maps</span>
         </div>
         <div className="topbar-actions">
-          <button
-            type="button"
-            className={`btn compact toggle${theme === "night" ? " active" : ""}`}
-            onClick={toggleTheme}
-            aria-label="Toggle theme"
-            aria-pressed={theme === "night"}
-          >
-            {theme === "day" ? "Night" : "Day"}
-          </button>
           {hasUser && (
             <button
               type="button"
