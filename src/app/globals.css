@@ -117,10 +117,11 @@ code {
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
-  padding: 0.85rem 0.5rem 0.85rem 0;
+  padding: 0.85rem 0.85rem 0.85rem 0.5rem;
   margin-bottom: 0.5rem;
   background: #699bd9;
-  border-bottom: 1.5px solid #000;
+  border: 1.5px solid #000;
+  border-radius: 14px;
 }
 
 .brand-lockup {

@@ -134,6 +134,7 @@ export function ProgressApp() {
         localStorage.setItem(LS.lastSync, syncedAt);
         localStorage.setItem(LS.baseline, JSON.stringify(data.progress));
         setOak(oakToken);
+        if (nextProfile.displayName) setShowOakSettings(false);
 
         if (!opts?.silent) {
           const name = nextProfile.displayName
@@ -166,17 +167,17 @@ export function ProgressApp() {
   useEffect(() => {
     const storedOak = localStorage.getItem(LS.oak) ?? "";
     setOak(storedOak);
-    setShowOakSettings(!storedOak);
 
     const storedTheme = (localStorage.getItem(LS.theme) as ThemeMode) || "day";
     setTheme(storedTheme);
     applyTheme(storedTheme);
 
+    let hasStoredUser = false;
     const storedProfile = localStorage.getItem(LS.profile);
     if (storedProfile) {
       try {
         const parsed = JSON.parse(storedProfile) as Partial<OakProfile>;
-        setProfile({
+        const nextProfile: OakProfile = {
           displayName: parsed.displayName ?? null,
           rank: parsed.rank ?? null,
           veteranRank: parsed.veteranRank ?? null,
@@ -184,11 +185,14 @@ export function ProgressApp() {
           veteranXp: parsed.veteranXp ?? null,
           avatarURL: parsed.avatarURL ?? null,
           bannerURL: parsed.bannerURL ?? null,
-        });
+        };
+        setProfile(nextProfile);
+        hasStoredUser = Boolean(nextProfile.displayName);
       } catch {
         /* ignore */
       }
     }
+    setShowOakSettings(!hasStoredUser);
 
     const storedSync = localStorage.getItem(LS.lastSync);
     if (storedSync) setLastSync(storedSync);
@@ -396,6 +400,7 @@ export function ProgressApp() {
   const selectedEdited = selected
     ? isMapEdited(selected.id, progress, baseline)
     : false;
+  const hasUser = Boolean(profile?.displayName);
 
   return (
     <div className="app-shell">
@@ -414,25 +419,30 @@ export function ProgressApp() {
           >
             {theme === "day" ? "Night" : "Day"}
           </button>
-          <button
-            type="button"
-            className={`btn compact toggle${showOakSettings ? " active" : ""}`}
-            onClick={() => setShowOakSettings((v) => !v)}
-            aria-pressed={showOakSettings}
-          >
-            OAK
-          </button>
-          <button
-            type="button"
-            className="btn primary compact sticky-sync"
-            onClick={() => syncOak()}
-            disabled={syncing}
-          >
-            {syncing ? "Syncing…" : "Sync now"}
-          </button>
+          {hasUser && (
+            <button
+              type="button"
+              className={`btn compact toggle${showOakSettings ? " active" : ""}`}
+              onClick={() => setShowOakSettings((v) => !v)}
+              aria-pressed={showOakSettings}
+            >
+              OAK
+            </button>
+          )}
+          {hasUser && (
+            <button
+              type="button"
+              className="btn primary compact sticky-sync"
+              onClick={() => syncOak()}
+              disabled={syncing}
+            >
+              {syncing ? "Syncing…" : "Sync now"}
+            </button>
+          )}
         </div>
       </header>
 
+      {hasUser && (
       <section
         className={`dashboard${profile?.bannerURL ? " has-banner" : ""}`}
         aria-label="Progress dashboard"
@@ -453,14 +463,8 @@ export function ProgressApp() {
             )}
           </div>
           <div className="dash-main">
-            <p className="dash-kicker">
-              {profile?.displayName ? "Player" : "Overview"}
-            </p>
-            <h1 className="dash-title">
-              {loading
-                ? "…"
-                : profile?.displayName || "Mark every map medal"}
-            </h1>
+            <p className="dash-kicker">Player</p>
+            <h1 className="dash-title">{profile?.displayName}</h1>
             <p className="dash-sub">
               {[
                 profile?.rank != null ? `Rank ${profile.rank}` : null,
@@ -485,13 +489,15 @@ export function ProgressApp() {
           </div>
         </div>
       </section>
+      )}
 
-      {showOakSettings && (
+      {(showOakSettings || !hasUser) && (
         <section className="api-panel" id="oak">
           <h2>Ninja Kiwi OAK</h2>
           <p>
-            Profile → Open Data API in BTD6. Tokens expire after ~90 days. Auto
-            sync runs on load if the last sync was over 15 minutes ago.
+            {hasUser
+              ? "Profile → Open Data API in BTD6. Tokens expire after ~90 days. Auto sync runs on load if the last sync was over 15 minutes ago."
+              : "First-time setup: paste your Open Access Key from BTD6 → Profile → Open Data API, then sync."}
           </p>
           <label className="field">
             <span>Open Access Key</span>
@@ -513,16 +519,24 @@ export function ProgressApp() {
             >
               {syncing ? "Syncing…" : "Sync from game"}
             </button>
-            <button type="button" className="btn soft" onClick={exportProgress}>
-              Export JSON
-            </button>
-            <button
-              type="button"
-              className="btn soft"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              Import JSON
-            </button>
+            {hasUser && (
+              <>
+                <button
+                  type="button"
+                  className="btn soft"
+                  onClick={exportProgress}
+                >
+                  Export JSON
+                </button>
+                <button
+                  type="button"
+                  className="btn soft"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  Import JSON
+                </button>
+              </>
+            )}
             <input
               ref={fileInputRef}
               type="file"
@@ -538,6 +552,7 @@ export function ProgressApp() {
         </section>
       )}
 
+      {hasUser && (
       <section className="toolbar">
         <input
           className="search"
@@ -590,7 +605,9 @@ export function ProgressApp() {
           {saving && <span className="saving">Saving…</span>}
         </div>
       </section>
+      )}
 
+      {hasUser && (
       <main className="map-sections">
         {loading ? (
           <p className="muted">Loading maps…</p>
@@ -631,6 +648,7 @@ export function ProgressApp() {
           ))
         )}
       </main>
+      )}
 
       {selected && (
         <div
@@ -751,6 +769,7 @@ export function ProgressApp() {
         </div>
       )}
 
+      {hasUser && (
       <div className="mobile-sync-bar">
         <button
           type="button"
@@ -761,6 +780,7 @@ export function ProgressApp() {
           {syncing ? "Syncing…" : "Sync now"}
         </button>
       </div>
+      )}
 
       {toast && <div className="toast">{toast}</div>}
 
