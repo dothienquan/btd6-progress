@@ -109,38 +109,30 @@ code {
   padding: 0 1.25rem 5.5rem;
 }
 
-.topbar {
+/* Stays at the top while the filter toolbar below scrolls away. */
+.title-bar {
   position: sticky;
   top: 0;
-  z-index: 20;
-  display: flex;
-  justify-content: space-between;
+  z-index: 40;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  gap: 1rem;
-  padding: 0.85rem 0.85rem 0.85rem 0.5rem;
-  margin-bottom: 0.5rem;
-  background: #699bd9;
-  border: 1.5px solid #000;
-  border-radius: 14px;
-}
-
-.brand-lockup {
-  display: flex;
-  align-items: baseline;
-  gap: 0.55rem;
-  min-width: 0;
-  flex-wrap: wrap;
+  padding: 0.85rem 0;
+  margin-bottom: 0.65rem;
+  background: transparent;
 }
 
 .brand {
+  grid-column: 2;
+  justify-self: center;
   margin: 0;
-  padding-left: 0.35rem;
   font-family: var(--font-display), sans-serif;
   font-size: clamp(1.15rem, 2.8vw, 1.65rem);
   font-weight: 400;
   letter-spacing: 0.08em;
   line-height: 1.1;
   text-transform: uppercase;
+  text-align: center;
   color: #fff;
   background: url("/ui/YellowTxtTextureMain.webp");
   background-size: contain;
@@ -157,20 +149,21 @@ code {
     drop-shadow(1px -1px 0 #000);
 }
 
-.brand-meta {
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: #fff;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+.title-oak {
+  grid-column: 3;
+  justify-self: end;
 }
 
-.topbar-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-  justify-content: flex-end;
+.toolbar {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 1.35rem;
+  position: static;
+  z-index: 1;
+  padding: 0.7rem 0.75rem;
+  background: #699bd9;
+  border: 1.5px solid #000;
+  border-radius: 10px;
 }
 
 .btn {
@@ -533,22 +526,22 @@ code {
   gap: 0.5rem;
 }
 
-.toolbar {
-  display: grid;
-  gap: 0.75rem;
-  margin-bottom: 1.35rem;
-  position: sticky;
-  top: 3.6rem;
-  z-index: 15;
-  padding: 0.7rem 0.75rem;
-  background: #699bd9;
-  border: 1.5px solid #000;
-  border-radius: 10px;
+.search-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
 }
 
 .search {
-  width: 100%;
+  flex: 1 1 12rem;
+  width: auto;
   max-width: 28rem;
+}
+
+.toolbar-sync {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .tabs,
@@ -681,7 +674,7 @@ code {
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  border-width: 3px;
+  border-width: 5px;
   border-style: solid;
   border-radius: 14px;
   padding: 1rem;
@@ -799,11 +792,13 @@ code {
 .drawer {
   width: min(440px, 100%);
   height: 100%;
-  background: var(--drawer-bg);
+  background: #699bd9;
+  border-left: 1.5px solid #000;
   padding: 1.2rem 1.15rem 2rem;
   overflow-y: auto;
   box-shadow: -12px 0 40px rgba(0, 0, 0, 0.22);
   animation: slideIn 0.28s ease;
+  color: #fff;
 }
 
 @keyframes slideIn {
@@ -830,15 +825,22 @@ code {
   font-size: 0.76rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--ink-soft);
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
 .drawer h3 {
   margin: 0.2rem 0 0;
   font-family: var(--font-display), sans-serif;
   font-size: 1.65rem;
-  color: var(--brand);
+  letter-spacing: 0.06em;
+  color: #fff;
   line-height: 1.15;
+  text-shadow:
+    -1.5px -1.5px 0 #000,
+    1.5px -1.5px 0 #000,
+    -1.5px 1.5px 0 #000,
+    1.5px 1.5px 0 #000;
 }
 
 .border-preview {
@@ -911,6 +913,8 @@ code {
 .drawer-links a {
   font-weight: 700;
   font-size: 0.92rem;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 .quick-marks {
@@ -970,7 +974,8 @@ code {
   text-transform: uppercase;
   letter-spacing: 0.07em;
   font-size: 0.75rem;
-  color: var(--ink-soft);
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
 .medal-list {
@@ -1045,7 +1050,7 @@ code {
 
 .toast {
   position: fixed;
-  bottom: 5rem;
+  bottom: 1.5rem;
   left: 50%;
   transform: translateX(-50%);
   background: var(--toast-bg);
@@ -1059,21 +1064,6 @@ code {
   animation: riseIn 0.25s ease;
   max-width: min(92vw, 420px);
   text-align: center;
-}
-
-.mobile-sync-bar {
-  display: none;
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 30;
-  padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
-  background: linear-gradient(to top, var(--bg-a), color-mix(in srgb, var(--bg-a) 70%, transparent));
-}
-
-.mobile-sync-bar .btn {
-  width: 100%;
 }
 
 .site-footer {
@@ -1097,23 +1087,7 @@ code {
 
 @media (max-width: 640px) {
   .app-shell {
-    padding-bottom: 6.5rem;
-  }
-
-  .brand-meta {
-    display: none;
-  }
-
-  .sticky-sync {
-    display: none;
-  }
-
-  .mobile-sync-bar {
-    display: block;
-  }
-
-  .toolbar {
-    top: 3.35rem;
+    padding-bottom: 2.5rem;
   }
 
   .drawer-backdrop {
@@ -1137,9 +1111,5 @@ code {
       transform: translateY(0);
       opacity: 1;
     }
-  }
-
-  .toast {
-    bottom: 5.75rem;
   }
 }

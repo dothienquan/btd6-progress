@@ -317,33 +317,18 @@ export function ProgressApp() {
 
   return (
     <div className="app-shell">
-      <header className="topbar">
-        <div className="brand-lockup">
-          <p className="brand">BTD 6 PROGRESS TRACKER</p>
-          <span className="brand-meta">v{MAP_VERSION} maps</span>
-        </div>
-        <div className="topbar-actions">
-          {hasUser && (
-            <button
-              type="button"
-              className={`btn compact toggle${showOakSettings ? " active" : ""}`}
-              onClick={() => setShowOakSettings((v) => !v)}
-              aria-pressed={showOakSettings}
-            >
-              OAK
-            </button>
-          )}
-          {hasUser && (
-            <button
-              type="button"
-              className="btn primary compact sticky-sync"
-              onClick={() => syncOak()}
-              disabled={syncing}
-            >
-              {syncing ? "Syncing…" : "Sync now"}
-            </button>
-          )}
-        </div>
+      <header className="title-bar">
+        <p className="brand">BTD 6 PROGRESS TRACKER</p>
+        {hasUser && (
+          <button
+            type="button"
+            className={`btn compact toggle title-oak${showOakSettings ? " active" : ""}`}
+            onClick={() => setShowOakSettings((v) => !v)}
+            aria-pressed={showOakSettings}
+          >
+            OAK
+          </button>
+        )}
       </header>
 
       {hasUser && (
@@ -451,12 +436,22 @@ export function ProgressApp() {
             Co-op
           </button>
         </div>
-        <input
-          className="search"
-          placeholder="Search maps…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
+        <div className="search-row">
+          <input
+            className="search"
+            placeholder="Search maps…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          <button
+            type="button"
+            className="btn primary compact toolbar-sync"
+            onClick={() => syncOak()}
+            disabled={syncing}
+          >
+            {syncing ? "Syncing…" : "Sync now"}
+          </button>
+        </div>
         <div className="tabs" role="tablist" aria-label="Difficulty">
           <button
             type="button"
@@ -486,7 +481,7 @@ export function ProgressApp() {
               [
                 ["all", "All"],
                 ["incomplete", "Incomplete"],
-                ["finished", "Finished"],
+                ["finished", "Completed"],
               ] as const
             ).map(([id, label]) => (
               <button
@@ -644,19 +639,6 @@ export function ProgressApp() {
             ))}
           </aside>
         </div>
-      )}
-
-      {hasUser && (
-      <div className="mobile-sync-bar">
-        <button
-          type="button"
-          className="btn primary"
-          onClick={() => syncOak()}
-          disabled={syncing}
-        >
-          {syncing ? "Syncing…" : "Sync now"}
-        </button>
-      </div>
       )}
 
       {toast && <div className="toast">{toast}</div>}
