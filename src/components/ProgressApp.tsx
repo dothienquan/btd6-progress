@@ -77,9 +77,17 @@ export function ProgressApp() {
   const [showOakSettings, setShowOakSettings] = useState(false);
   const [profile, setProfile] = useState<OakProfile | null>(null);
   const [lastSync, setLastSync] = useState<string | null>(null);
+  const [showSyncHint, setShowSyncHint] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const autoSynced = useRef(false);
+
+  useEffect(() => {
+    if (!lastSync) return;
+    setShowSyncHint(true);
+    const timer = window.setTimeout(() => setShowSyncHint(false), 4000);
+    return () => window.clearTimeout(timer);
+  }, [lastSync]);
 
   const progress = playStyle === "solo" ? soloProgress : coopProgress;
   const baseline = playStyle === "solo" ? soloBaseline : coopBaseline;
@@ -319,16 +327,6 @@ export function ProgressApp() {
     <div className="app-shell">
       <header className="title-bar">
         <p className="brand">BTD 6 PROGRESS TRACKER</p>
-        {hasUser && (
-          <button
-            type="button"
-            className={`btn compact toggle title-oak${showOakSettings ? " active" : ""}`}
-            onClick={() => setShowOakSettings((v) => !v)}
-            aria-pressed={showOakSettings}
-          >
-            OAK
-          </button>
-        )}
       </header>
 
       {hasUser && (
@@ -352,7 +350,6 @@ export function ProgressApp() {
             )}
           </div>
           <div className="dash-main">
-            <p className="dash-kicker">Player</p>
             <h1 className="dash-title">{profile?.displayName}</h1>
             <p className="dash-sub">
               {[
@@ -360,7 +357,6 @@ export function ProgressApp() {
                 profile?.veteranRank != null
                   ? `Veteran ${profile.veteranRank}`
                   : null,
-                `Last sync: ${formatRelativeTime(lastSync)}`,
                 editedCount > 0 ? `${editedCount} manual edits` : null,
               ]
                 .filter(Boolean)
@@ -416,24 +412,34 @@ export function ProgressApp() {
 
       {hasUser && (
       <section className="toolbar">
-        <div className="chips play-style-toggle" role="tablist" aria-label="Play style">
+        <div className="toolbar-top">
+          <div className="chips play-style-toggle" role="tablist" aria-label="Play style">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={playStyle === "solo"}
+              className={playStyle === "solo" ? "active" : ""}
+              onClick={() => selectPlayStyle("solo")}
+            >
+              Solo
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={playStyle === "coop"}
+              className={playStyle === "coop" ? "active" : ""}
+              onClick={() => selectPlayStyle("coop")}
+            >
+              Co-op
+            </button>
+          </div>
           <button
             type="button"
-            role="tab"
-            aria-selected={playStyle === "solo"}
-            className={playStyle === "solo" ? "active" : ""}
-            onClick={() => selectPlayStyle("solo")}
+            className={`btn compact toggle toolbar-oak${showOakSettings ? " active" : ""}`}
+            onClick={() => setShowOakSettings((v) => !v)}
+            aria-pressed={showOakSettings}
           >
-            Solo
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={playStyle === "coop"}
-            className={playStyle === "coop" ? "active" : ""}
-            onClick={() => selectPlayStyle("coop")}
-          >
-            Co-op
+            OAK
           </button>
         </div>
         <div className="search-row">
@@ -451,6 +457,11 @@ export function ProgressApp() {
           >
             {syncing ? "Syncing…" : "Sync now"}
           </button>
+          {showSyncHint && lastSync && (
+            <span className="toolbar-sync-hint" aria-live="polite">
+              Last sync: {formatRelativeTime(lastSync)}
+            </span>
+          )}
         </div>
         <div className="tabs" role="tablist" aria-label="Difficulty">
           <button
