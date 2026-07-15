@@ -94,7 +94,6 @@ export function ProgressApp() {
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const autoSynced = useRef(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const syncOak = useCallback(
     async (token?: string, opts?: { silent?: boolean }) => {
@@ -355,42 +354,6 @@ export function ProgressApp() {
     [progress],
   );
 
-  const exportProgress = useCallback(() => {
-    const blob = new Blob([JSON.stringify(progress, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `btd6-progress-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [progress]);
-
-  const importProgress = useCallback(
-    async (file: File) => {
-      try {
-        const text = await file.text();
-        const parsed = JSON.parse(text) as ProgressStore;
-        if (!parsed.maps || typeof parsed.maps !== "object") {
-          throw new Error("Invalid progress file");
-        }
-        const res = await fetch("/api/progress", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ maps: parsed.maps }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Import failed");
-        setProgress(data.progress);
-        setToast("Progress imported.");
-      } catch (err) {
-        setToast(err instanceof Error ? err.message : "Import failed");
-      }
-    },
-    [],
-  );
-
   const selectedMissing = selected
     ? missingMedals(progress.maps[selected.id])
     : [];
@@ -519,35 +482,6 @@ export function ProgressApp() {
             >
               {syncing ? "Syncing…" : "Sync from game"}
             </button>
-            {hasUser && (
-              <>
-                <button
-                  type="button"
-                  className="btn soft"
-                  onClick={exportProgress}
-                >
-                  Export JSON
-                </button>
-                <button
-                  type="button"
-                  className="btn soft"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  Import JSON
-                </button>
-              </>
-            )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="application/json,.json"
-              hidden
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) void importProgress(file);
-                e.target.value = "";
-              }}
-            />
           </div>
         </section>
       )}
