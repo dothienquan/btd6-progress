@@ -401,7 +401,7 @@ export function ProgressApp() {
     <div className="app-shell">
       <header className="topbar">
         <div className="brand-lockup">
-          <p className="brand">BTD6 Progress</p>
+          <p className="brand">BTD 6 PROGRESS TRACKER</p>
           <span className="brand-meta">v{MAP_VERSION} maps</span>
         </div>
         <div className="topbar-actions">

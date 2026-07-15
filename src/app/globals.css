@@ -128,17 +128,32 @@ code {
   align-items: baseline;
   gap: 0.55rem;
   min-width: 0;
+  flex-wrap: wrap;
 }
 
 .brand {
   margin: 0;
   padding-left: 0.35rem;
   font-family: var(--font-display), sans-serif;
-  font-size: clamp(1.45rem, 3.5vw, 1.9rem);
-  font-weight: 700;
+  font-size: clamp(1.15rem, 2.8vw, 1.65rem);
+  font-weight: 400;
   letter-spacing: 0.08em;
-  color: var(--brand);
-  line-height: 1;
+  line-height: 1.1;
+  text-transform: uppercase;
+  color: #fff;
+  background: url("/ui/YellowTxtTextureMain.webp");
+  background-size: contain;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter:
+    drop-shadow(1px 0 0 #000)
+    drop-shadow(-1px 0 0 #000)
+    drop-shadow(0 1px 0 #000)
+    drop-shadow(1px 2px 0 #000)
+    drop-shadow(-1px -1px 0 #000)
+    drop-shadow(-1px 2px 0 #000)
+    drop-shadow(1px -1px 0 #000);
 }
 
 .brand-meta {

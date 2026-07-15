@@ -9,7 +9,7 @@ const luckiestGuy = Luckiest_Guy({
 });
 
 export const metadata: Metadata = {
-  title: "BTD6 Progress — Map Medal Tracker",
+  title: "BTD 6 Progress Tracker",
   description:
     "Track Bloons TD 6 solo map medals through Version 55 (2026), with OAK auto-sync from Ninja Kiwi.",
 };
