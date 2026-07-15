@@ -583,6 +583,16 @@ code {
     transform 0.12s ease;
 }
 
+.tabs button,
+.chips.completion-toggle button {
+  width: 10.75rem;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
 .tabs button:hover,
 .chips button:hover {
   filter: brightness(1.06);
