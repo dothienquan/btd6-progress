@@ -12,6 +12,11 @@ import {
 } from "@/data/maps";
 import { MEDALS, type MedalId } from "@/data/medals";
 import {
+  loadClientProgress,
+  patchClientMap,
+  saveClientProgress,
+} from "@/lib/clientProgress";
+import {
   countMedals,
   emptyProgress,
   formatRelativeTime,
@@ -55,23 +60,6 @@ const LS = {
 
 const AUTO_SYNC_MS = 15 * 60 * 1000;
 
-async function fetchProgress(): Promise<ProgressStore> {
-  const res = await fetch("/api/progress", { cache: "no-store" });
-  if (!res.ok) return emptyProgress();
-  const data = await res.json();
-  return data.progress ?? emptyProgress();
-}
-
-async function saveMapMedals(mapId: string, medals: Record<string, boolean>) {
-  const res = await fetch(`/api/progress/${mapId}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(medals),
-  });
-  if (!res.ok) throw new Error("SAVE_FAILED");
-  return res.json();
-}
-
 function applyTheme(theme: ThemeMode) {
   document.documentElement.dataset.theme = theme;
 }
@@ -91,7 +79,6 @@ export function ProgressApp() {
   const [lastSync, setLastSync] = useState<string | null>(null);
   const [theme, setTheme] = useState<ThemeMode>("day");
   const [toast, setToast] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const autoSynced = useRef(false);
 
@@ -115,6 +102,7 @@ export function ProgressApp() {
 
         setProgress(data.progress);
         setBaseline(data.progress);
+        saveClientProgress(data.progress);
         const syncedAt = new Date().toISOString();
         setLastSync(syncedAt);
 
@@ -206,21 +194,18 @@ export function ProgressApp() {
     }
 
     let cancelled = false;
-    fetchProgress()
-      .then(async (p) => {
-        if (cancelled) return;
-        setProgress(p);
-        setLoading(false);
-        if (!storedOak || autoSynced.current) return;
-        autoSynced.current = true;
-        const last = storedSync ? new Date(storedSync).getTime() : 0;
-        if (!last || Date.now() - last > AUTO_SYNC_MS) {
-          await syncOak(storedOak, { silent: true });
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setLoading(false);
-      });
+    const local = loadClientProgress();
+    setProgress(local);
+    setLoading(false);
+    if (storedOak && !autoSynced.current) {
+      autoSynced.current = true;
+      const last = storedSync ? new Date(storedSync).getTime() : 0;
+      if (!last || Date.now() - last > AUTO_SYNC_MS) {
+        void syncOak(storedOak, { silent: true }).finally(() => {
+          if (cancelled) return;
+        });
+      }
+    }
 
     return () => {
       cancelled = true;
@@ -284,36 +269,16 @@ export function ProgressApp() {
     });
   }, []);
 
-  const toggleMedal = useCallback(
-    async (mapId: string, medalId: MedalId) => {
-      const current = progress.maps[mapId] ?? {};
+  const toggleMedal = useCallback((mapId: string, medalId: MedalId) => {
+    setProgress((prev) => {
+      const current = prev.maps[mapId] ?? {};
       const nextVal = !current[medalId];
-      const nextMedals = { ...current, [medalId]: nextVal };
-
-      setProgress((prev) => ({
-        ...prev,
-        maps: { ...prev.maps, [mapId]: nextMedals },
-        updatedAt: new Date().toISOString(),
-      }));
-      setSaving(true);
-      try {
-        const data = await saveMapMedals(mapId, { [medalId]: nextVal });
-        if (data.progress) setProgress(data.progress);
-      } catch {
-        setToast("Could not save medal change.");
-        setProgress((prev) => ({
-          ...prev,
-          maps: { ...prev.maps, [mapId]: current },
-        }));
-      } finally {
-        setSaving(false);
-      }
-    },
-    [progress],
-  );
+      return patchClientMap(prev, mapId, { [medalId]: nextVal });
+    });
+  }, []);
 
   const markTier = useCallback(
-    async (mapId: string, upTo: "easy" | "medium" | "hard" | "all") => {
+    (mapId: string, upTo: "easy" | "medium" | "hard" | "all") => {
       const ids =
         upTo === "easy"
           ? MEDALS.filter((m) => m.difficulty === "easy").map((m) => m.id)
@@ -329,29 +294,9 @@ export function ProgressApp() {
         MedalId,
         boolean
       >;
-      const current = progress.maps[mapId] ?? {};
-      const merged = { ...current, ...patch };
-
-      setProgress((prev) => ({
-        ...prev,
-        maps: { ...prev.maps, [mapId]: merged },
-        updatedAt: new Date().toISOString(),
-      }));
-      setSaving(true);
-      try {
-        const data = await saveMapMedals(mapId, patch);
-        if (data.progress) setProgress(data.progress);
-      } catch {
-        setToast("Could not save batch update.");
-        setProgress((prev) => ({
-          ...prev,
-          maps: { ...prev.maps, [mapId]: current },
-        }));
-      } finally {
-        setSaving(false);
-      }
+      setProgress((prev) => patchClientMap(prev, mapId, patch));
     },
-    [progress],
+    [],
   );
 
   const selectedMissing = selected
@@ -536,7 +481,6 @@ export function ProgressApp() {
               </button>
             ))}
           </div>
-          {saving && <span className="saving">Saving…</span>}
         </div>
       </section>
       )}

@@ -1,10 +1,10 @@
 import { syncFromOak } from "@/lib/ninjakiwi";
 import { summarizeProgress } from "@/lib/progress";
-import { writeProgress } from "@/lib/store";
 
 /**
  * Sync map medals from an in-game Ninja Kiwi Open Access Key (OAK).
  * Generate one in BTD6 → Profile → Open Data API.
+ * Progress is returned to the client (browser storage) — no server disk write.
  */
 export async function POST(request: Request) {
   let body: unknown;
@@ -31,7 +31,10 @@ export async function POST(request: Request) {
 
   try {
     const result = await syncFromOak(oak);
-    const progress = await writeProgress(result.progress);
+    const progress = {
+      ...result.progress,
+      updatedAt: new Date().toISOString(),
+    };
     return Response.json({
       ok: true,
       source: "ninjakiwi-oak",

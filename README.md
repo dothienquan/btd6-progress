@@ -15,7 +15,9 @@ Open [http://localhost:3000](http://localhost:3000).
 
 1. In BTD6: **Profile → Open Data API** → generate an OAK (expires ~90 days).
 2. Paste it in the app and click **Sync from game**.
-3. Medals are pulled from Ninja Kiwi’s save endpoint and stored in `data/progress.json`.
+3. Medals are pulled from Ninja Kiwi’s save endpoint and stored **in your browser** (`localStorage`).
+
+Works on Vercel / serverless hosts (no server disk writes for progress).
 
 ```bash
 curl -X POST http://localhost:3000/api/oak/sync \
@@ -25,10 +27,9 @@ curl -X POST http://localhost:3000/api/oak/sync \
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `POST` | `/api/oak/sync` | Fetch save via OAK and replace local map medals |
+| `POST` | `/api/oak/sync` | Fetch save via OAK and return map medals + profile |
 | `POST` | `/api/oak/profile` | Peek at public profile for an OAK (no write) |
 | `GET` | `/api/maps` | Local map/medal catalog |
-| `GET` | `/api/progress` | Current stored progress |
 
 Official docs: [Open Data API](https://support.ninjakiwi.com/hc/en-us/articles/13438499873937-Open-Data-API) · [data.ninjakiwi.com](https://data.ninjakiwi.com/)
 
